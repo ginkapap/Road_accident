@@ -1,0 +1,147 @@
+---
+title: "Road Accidents Incidence "
+
+author: "李冠緻、王聖曜"
+
+date: 
+output: 
+  html_document:
+    number_sections: true
+---
+
+資料名稱：Road Accidents Incidence 
+          Road Accidents Data Great Britain 1979-201
+
+網址：https://www.kaggle.com/akshay4/road-accidents-incidence
+
+#目的與説明
+
+本次欲探討題目為「在何種情況下，最有可能發生嚴重交通事故」，原始資料中事故嚴重程度分為三級，本處將歸類第一、二級為嚴重第三級為不嚴重；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡層變數且剔除年齡變數。
+
+## 資料變數說明
+
+Police Force：警力來源
+
+Accident Severity：事故嚴重程度 
+
+Number of Vehicles：車輛數量
+
+Number of Casualties：傷亡人數
+
+Day of Week：星期
+
+Time (HH:MM)：時間
+
+Local Authority (District)：地區
+
+1st Road Class：第一條道路類別
+
+Road Type：道路型態
+
+Speed limit：限速
+
+Junction Detail：道路細節
+
+Junction Control：交通管制
+
+2nd Road Class：第二條道路類別
+
+Pedestrian Crossing-Human Control：人行道控制
+
+Pedestrian Crossing-Physical Facilities：人行道設施
+
+Light Conditions：光線
+
+Weather Conditions：天氣
+
+Road Surface Conditions：路面狀況
+
+Special Conditions at Site：號誌缺陷
+
+Carriageway Hazards：車道危險
+
+Urban or Rural Area：城市或農村地區
+
+Did Police Officer Attend Scene of Accident：警察是否在事故現場
+
+Vehicle Type：車輛類型
+
+Towing and Articulation：拖吊車類型 
+
+Vehicle Manoeuvre：事故原因
+
+Vehicle Location-Restricted Lane：車輛位置限制車道
+
+Junction Location：交界處類型
+
+Skidding and Overturning：打滑或翻車
+
+Hit Object in Carriageway：在車道中撞擊物體
+
+Vehicle Leaving Carriageway：車輛離開行車道類型
+
+Hit Object off Carriageway：撞到物件
+
+1st Point of Impact：第一個撞擊點
+
+Was Vehicle Left Hand Drive：左駕
+
+Journey Purpose of Driver：開車目的
+
+Sex of Driver：駕駛性別
+
+age Band of Driver:駕駛年齡層 
+
+Vehicle Propulsion Code：車輛動力來源類型
+
+Age of Vehicle (manufacture)：車齡
+
+Casualty Class:傷者類型
+
+Sex of Casualty：傷者性別
+
+Age Band of Casualty：傷者年齡層 
+
+Casualty Severity：受傷程度 
+
+Pedestrian Location：行人位置
+
+Pedestrian Movement：行人動作
+
+Car Passenger：車上乘客位置
+
+Bus or Coach Passenger：公車上乘客動作
+
+Pedestrian Road Maintenance Worker (From 2011)：是否有道路保養
+
+Casualty Type：傷亡類型
+
+Casualty IMD Decile：受害者貧困指數
+
+Casualty Home Area Type：受害區域 
+
+## EDA
+
+### 觀察各變數資料的缺失狀況百分
+
+```{r}
+dfna
+```
+
+其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以值接刪除兩變數，其他遺失部分則選擇刪去列。
+
+```{r}
+na.omit(df2) ->df2
+na.omit(df21) -> df21
+```
+
+### 變數觀察
+
+```{r}
+df3 <- df2 %>% select(-time)
+cormat <- round(cor(df3),2)
+melted_cormat <- melt(cormat)
+melted_cormat%>% filter(melted_cormat$Var1 == 'accident_severity')
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() + theme(axis.text.x = element_text(angle=90, hjust=1, vjust=.5),axis.text=element_text(size=5))
+```
