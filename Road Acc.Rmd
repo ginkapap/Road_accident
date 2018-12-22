@@ -1,0 +1,357 @@
+---
+title: "Road Accidents Incidence "
+author: "李冠緻、王聖曜"
+date: 
+output: 
+  html_document:
+    number_sections: true
+---
+
+資料來源：http
+資料名稱：opop
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{R,include=FALSE}
+use_condaenv("/anaconda3/envs/m-team")
+```
+
+```{r, echo=TRUE,include=FALSE}
+library(reticulate)
+use_python("/anaconda3/bin/python3.6", required = T)
+```
+
+```{r setup, include=FALSE}
+source_python("/Users/liguanzhi/Desktop/iui.py")
+knitr::opts_chunk$set(echo = FALSE)
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+library(mice)
+library(tidyr)
+library(DMwR)
+library(gplots)
+library(caret)
+library(tidyverse)
+library(leaflet)
+library(xts)
+library(chron)
+```
+
+#預測在什麼情況下會發生死亡事故
+
+原始資料中事故嚴重程度分為三級，在此將第二三級改為不嚴重；嚴重為1，不嚴重為0；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡層變數且剔除年齡變數。
+
+## 資料變數說明
+
+Accident Index：事故指標X
+
+Police Force：警力來源
+
+Accident Severity：事故嚴重程度 有序
+
+Number of Vehicles：車輛數量
+
+Number of Casualties：傷亡人數
+
+Date (DD/MM/YYYY)：日期X
+
+Day of Week：星期
+
+Time (HH:MM)：時間4  (上網看如何處理時間)
+
+Location Easting OSGR (Null if not known)：地圖東向位置5 X
+
+Location Northing OSGR (Null if not known)：地圖北向位置6 X
+
+Longitude (Null if not known)：經度7 
+
+Latitude (Null if not known)：緯度8 
+
+Local Authority (District)：地區
+
+Local Authority (Highway Authority - ONS code)：當地公路管理局 X
+
+1st Road Class：第一條道路類別
+
+1st Road Number：第一條道路號碼9 X
+
+Road Type：道路型態
+
+Speed limit：限速10
+
+Junction Detail：道路細節
+
+Junction Control：交通管制
+
+2nd Road Class：第二條道路類別
+
+2nd Road Number：第二條道路號碼11 X
+
+Pedestrian Crossing-Human Control：人行道控制
+
+Pedestrian Crossing-Physical Facilities：人行道設施
+
+Light Conditions：光線
+
+Weather Conditions：天氣
+
+Road Surface Conditions：路面狀況
+
+Special Conditions at Site：號誌缺陷
+
+Carriageway Hazards：車道危險
+
+Urban or Rural Area：城市或農村地區
+
+Did Police Officer Attend Scene of Accident：警察是否在事故現場
+
+Lower Super Ouput Area of Accident_Location (England & Wales only)： X
+
+Vehicle Reference :車牌號碼13 X
+
+Vehicle Type：車輛類型
+
+Towing and Articulation：拖吊車類型 
+
+Vehicle Manoeuvre：事故原因
+
+Vehicle Location-Restricted Lane：車輛位置限制車道
+
+Junction Location：交界處類型
+
+Skidding and Overturning：打滑或翻車
+
+Hit Object in Carriageway：在車道中撞擊物體
+
+Vehicle Leaving Carriageway：車輛離開行車道類型
+
+Hit Object off Carriageway：撞到物件
+
+1st Point of Impact：第一個撞擊點
+
+Was Vehicle Left Hand Drive：左駕
+
+Journey Purpose of Driver：開車目的
+
+Sex of Driver：駕駛性別
+
+Age of Driver：駕駛年紀 
+
+age Band of Driver:駕駛年齡層 有序
+
+Engine Capacity：引擎容量15
+
+Vehicle Propulsion Code：車輛動力來源類型
+
+Age of Vehicle (manufacture)：車齡16
+
+Driver IMD Decile：駕駛貧困指數
+
+Driver Home Area Type: 駕駛家停區域狀況
+
+Casualty Reference：X
+
+Casualty Class:傷者類型
+
+Sex of Casualty：傷者性別
+
+Age of Casualty：傷者年紀 X
+
+Age Band of Casualty：傷者年齡層 有序
+
+Casualty Severity：受傷程度 有序
+
+Pedestrian Location：行人位置
+
+Pedestrian Movement：行人動作
+
+Car Passenger：車上乘客位置
+
+Bus or Coach Passenger：公車上乘客動作
+
+Pedestrian Road Maintenance Worker (From 2011)：是否有道路保養
+
+Casualty Type：傷亡類型
+
+Casualty IMD Decile：受害者貧困指數
+
+Casualty Home Area Type：受害區域 
+
+## EDA
+
+### 觀察各變數資料的缺失狀況百分
+
+```{r}
+dfna
+```
+
+其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以值接刪除兩變數，其他遺失部分則選擇刪去列。
+
+### 時間序列
+
+```{r}
+
+df21 %>% filter(accident_severity == 1) -> df23
+df21 %>% filter(accident_severity != 1) -> df24
+
+df23$tt <- as.POSIXct(df23$time, format="%H:%M:%S")
+setNames(data.frame(table(df23$tt)),c("Date","Count")) ->dk
+dk$Date <- as.POSIXct((dk$Date), tz = "GMT")
+
+df24$tt <- as.POSIXct(df24$time, format="%H:%M:%S")
+setNames(data.frame(table(df24$tt)),c("Date","Count")) ->dj
+dj$Date <- as.POSIXct((dj$Date), tz = "GMT")
+dk$id = "one"
+dj$id = "two"
+df = rbind(dj, dk) 
+ggplot(df, aes(x = df$Date,y=Count,color=id)) + geom_line(size = 0.25)  +
+  scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ scale_y_continuous(limits = c(0,250))+ stat_smooth(color = "#FC4E05", fill = "#FC4E18",method = "loess") + xlab("時間") + ylab("死亡車禍次數")+theme(text=element_text(family="黑體-繁 中黑", size=14))
+```
+
+
+
+### 變數觀察
+
+```{r}
+df3 <- df2 %>% select(-time)
+cormat <- round(cor(df3),2)
+melted_cormat <- melt(cormat)
+melted_cormat%>% filter(melted_cormat$Var1 == 'accident_severity')
+ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() + theme(axis.text.x = element_text(angle=90, hjust=1, vjust=.5),axis.text=element_text(size=5))
+
+```
+
+accident_severity跟casualty_severity呈現高度線性相關，原因為casualty_severity為衡量受害者受傷程度指標，受害者受傷越嚴重死亡重傷車禍自然也越嚴重。
+
+```{r}
+df21$casualty_severity=factor(df21$casualty_severity)
+ggplot(df21, aes(accident_severity, fill=casualty_severity)) + geom_bar(position="fill")
+```
+
+非嚴重車禍中受害者皆為輕傷，而嚴重車禍中有很大一部分的受害者為重傷少部分為死亡與輕傷。
+
+#### 最常撞重傷的車子(記得條x軸)
+
+```{r}
+ggplot(df21, aes(accident_severity, fill=factor(vehicle_type))) + geom_bar(position="fill")
+ggplot(df21, aes(accident_severity, fill=factor(did_police_officer_attend_scene_of_accident))) + geom_bar(position="fill")
+ggplot(df21, aes(accident_severity, fill=factor(speed_limit))) + geom_bar(position="fill")
+ggplot(df21, aes(skidding_and_overturning, fill=factor(accident_severity))) + geom_bar(position="fill")
+ggplot(df21, aes(x=df21$age_of_driver,y=df21$age_of_casualty,colour=factor(df21$accident_severity))) + geom_point(alpha=0.06)
+df21$`1st_point_of_impact`=factor(df21$`1st_point_of_impact`)
+df21$accident_severity =factor(df21$accident_severity)
+```
+
+第五類車種一撞就掛
+星期一最容易死亡車禍
+警察在比較不會掛
+時速六十掛
+清晨比容易掛
+第四類打滑GG
+年齡出現一條正相關欸
+發生嚴重車禍時，撞擊點大部分來自於前方。
+
+#### 哪裡常出現嚴重車禍
+
+```{r}
+map<-leaflet(df23)%>%
+  addTiles()%>%
+  setView(lng=-1,lat=52,zoom=7)
+map %>%  addCircles(lng = df23$longitude,lat = df23$latitude,radius=df23$accident_severity,fillColor = topo.colors(10, alpha = 0.1)) 
+```
+
+倫敦、伯明函大都市比較會掛
+
+
+#### 車齡、天氣、路面狀況等影響
+
+```{r}
+qplot(accident_severity, age_band_of_driver, data = df21, geom = c("boxplot"),
+   fill = accident_severity)+ ylim(0, 10) + stat_summary(fun.y = "mean", geom = "point", shape = 25, size = 2, fill = "blue") 
+df21$weather_conditions=factor(df21$weather_conditions)
+df21$light_conditions =factor(df21$light_conditions)
+df21$day_of_week=factor(df21$day_of_week)
+df21$road_surface_conditions=factor(df21$road_surface_conditions)
+ggplot(df21, aes(accident_severity, fill=light_conditions)) + geom_bar(position="fill")
+ggplot(df21, aes(accident_severity, fill=weather_conditions)) + geom_bar(position="fill")
+ggplot(df21, aes(accident_severity, fill=road_surface_conditions)) + geom_bar(position="fill")
+ggplot(df21, aes(accident_severity, fill=day_of_week)) + geom_bar(position="fill")
+ggplot(df23, aes(day_of_week)) + geom_bar()
+ggplot(df21, aes(x=df21$age_of_driver,y=df21$age_of_vehicle,colour=factor(df21$accident_severity))) + geom_point(alpha=0.5)
+dk  %>%
+    group_by(lubridate::hour(Date)) %>%
+    summarise(count=n()) %>%
+    arrange(desc(count)) ->dj
+dj$`lubridate::hour(Date)`<-sprintf("%02d:00",dj$`lubridate::hour(Date)`)
+dj$`lubridate::hour(Date)` <- as.POSIXct(dj$`lubridate::hour(Date)`, format="%H:%M")
+ggplot(dj, aes(x = dj$`lubridate::hour(Date)`,y=count)) + geom_line()  +
+  scale_x_datetime(date_labels = "%H:%M", date_breaks = "2 hour")
+ggplot(dk, aes(x = dk$Date,y=Count)) + geom_line(color = "#00AFBB", size = 0.25)  +
+  scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ stat_smooth(color = "#FC4E07", fill = "#FC4E07",method = "loess") + xlab("時間") + ylab("死亡車禍次數")+theme(text=element_text(family="黑體-繁 中黑", size=14))
+```
+
+其他因素對於嚴重車禍是否發生沒那麼的大影響。
+
+
+### q
+was_vehicle_left_hand_drive?
+journey_purpose_of_driver
+number_of_vehicles
+number_of_casualties
+NUmber_of_Casualities_unique_to_accident_index
+No_of_Vehicles_involved_unique_to_accident_index
+speed_limit
+car_passenger
+bus_or_coach_passenger
+pedestrian_road_maintenance_worker
+
+## 隨機森林
+
+```{r}
+library(doParallel)
+cl = makeCluster(2)
+registerDoParallel(cl)
+set.seed(1234) # so that the indices will be the same when re-run
+trainIndices = createDataPartition(df21$accident_severity, p=.8, list=F)
+
+df21_train = df21 %>% 
+  slice(trainIndices)
+
+df21_test = df21 %>% 
+  slice(-trainIndices)
+cv_opts = trainControl(method='cv', number=10)
+
+```
+
+
+```{r}
+rf_opts = data.frame(mtry=c(1:30))
+results_rf = train(accident_severity~., 
+                   data = df21_train,
+                   method = 'rf',
+                   preProcess = c('center', 'scale'),
+                   trControl = cv_opts,
+                   tuneGrid = rf_opts,
+                   localImp = T,
+                   ntree=10)
+results_rf
+preds_rf = predict(results_rf, wine_test)
+preds_rf
+confusionMatrix(preds_rf, good_observed, positive='good')
+varImp(results_rf)
+```
+
+
+
+
+
+
+
+
+
+
+
+
