@@ -275,9 +275,9 @@ ggplot(dk, aes(x = dk$Date,y=Count)) + geom_line(color = "#00AFBB", size = 0.25)
 
 ```{r, message=FALSE}
 
-library(doParallel)
-cl = makeCluster(2)
-registerDoParallel(cl) # 平行運算cpu設為兩顆
+#library(doParallel)
+#cl = makeCluster(2)
+#registerDoParallel(cl) # 平行運算cpu設為兩顆
 
 
 set.seed(1234) # so that the indices will be the same when re-run
@@ -300,6 +300,19 @@ cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
 ```
 
 ## logistic regression without any variable/model selection
+
+```
+logistic_fit <- train(accident_severity~.,
+                      data = dftrain,
+                      method = "glm",
+                      family="binomial")
+
+
+logistic_fit
+```
+
+
+
 ## logistic regression with one method of variable/model selections logistic rigid regression
 ## logistic lasso regression
 ## logistic GAM (generalized additive model)
