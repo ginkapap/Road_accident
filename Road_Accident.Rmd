@@ -14,7 +14,7 @@ output:
 
 網址：https://www.kaggle.com/akshay4/road-accidents-incidence
 
-#目的與説明
+###目的與説明
 
 本次欲探討題目為「在何種情況下，最有可能發生嚴重交通事故」，原始資料中事故嚴重程度分為三級，本處將歸類第一、二級為嚴重第三級為不嚴重；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡變數且剔除年齡層變數。
 
@@ -125,7 +125,7 @@ Casualty Home Area Type：受害區域
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r setup, include=FALSE}
+```{r, include=FALSE}
 library(reticulate)
 library(reshape2)
 library(dplyr)
@@ -139,170 +139,29 @@ library(tidyverse)
 library(leaflet)
 library(xts)
 library(chron)
+library(showtext)
+showtext_auto()
+library(kableExtra)
 ```
 
 ```{r, echo=TRUE,include=FALSE}
-use_python("/anaconda3/bin/python3.6", required = T)
-use_condaenv("/anaconda3/envs/m-team")
-source_python("//Users/liguanzhi/git/Road_accident/iui.py")
+use_condaenv("m-team")
+source_python("Road_Accident.py")
 ```
 
+# EDA
 
-
-
-#預測在什麼情況下會發生死亡事故
-
-原始資料中事故嚴重程度分為三級，在此將第二三級改為不嚴重；嚴重為1，不嚴重為0；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡層變數且剔除年齡變數。
-
-## 資料變數說明
-
-Accident Index：事故指標X
-
-Police Force：警力來源
-
-Accident Severity：事故嚴重程度 有序
-
-Number of Vehicles：車輛數量
-
-Number of Casualties：傷亡人數
-
-Date (DD/MM/YYYY)：日期X
-
-Day of Week：星期
-
-Time (HH:MM)：時間4  (上網看如何處理時間)
-
-Location Easting OSGR (Null if not known)：地圖東向位置5 X
-
-Location Northing OSGR (Null if not known)：地圖北向位置6 X
-
-Longitude (Null if not known)：經度7 
-
-Latitude (Null if not known)：緯度8 
-
-Local Authority (District)：地區
-
-Local Authority (Highway Authority - ONS code)：當地公路管理局 X
-
-1st Road Class：第一條道路類別
-
-1st Road Number：第一條道路號碼9 X
-
-Road Type：道路型態
-
-Speed limit：限速10
-
-Junction Detail：道路細節
-
-Junction Control：交通管制
-
-2nd Road Class：第二條道路類別
-
-2nd Road Number：第二條道路號碼11 X
-
-Pedestrian Crossing-Human Control：人行道控制
-
-Pedestrian Crossing-Physical Facilities：人行道設施
-
-Light Conditions：光線
-
-Weather Conditions：天氣
-
-Road Surface Conditions：路面狀況
-
-Special Conditions at Site：號誌缺陷
-
-Carriageway Hazards：車道危險
-
-Urban or Rural Area：城市或農村地區
-
-Did Police Officer Attend Scene of Accident：警察是否在事故現場
-
-Lower Super Ouput Area of Accident_Location (England & Wales only)： X
-
-Vehicle Reference :車牌號碼13 X
-
-Vehicle Type：車輛類型
-
-Towing and Articulation：拖吊車類型 
-
-Vehicle Manoeuvre：事故原因
-
-Vehicle Location-Restricted Lane：車輛位置限制車道
-
-Junction Location：交界處類型
-
-Skidding and Overturning：打滑或翻車
-
-Hit Object in Carriageway：在車道中撞擊物體
-
-Vehicle Leaving Carriageway：車輛離開行車道類型
-
-Hit Object off Carriageway：撞到物件
-
-1st Point of Impact：第一個撞擊點
-
-Was Vehicle Left Hand Drive：左駕
-
-Journey Purpose of Driver：開車目的
-
-Sex of Driver：駕駛性別
-
-Age of Driver：駕駛年紀 
-
-age Band of Driver:駕駛年齡層 有序
-
-Engine Capacity：引擎容量15
-
-Vehicle Propulsion Code：車輛動力來源類型
-
-Age of Vehicle (manufacture)：車齡16
-
-Driver IMD Decile：駕駛貧困指數
-
-Driver Home Area Type: 駕駛家停區域狀況
-
-Casualty Reference：X
-
-Casualty Class:傷者類型
-
-Sex of Casualty：傷者性別
-
-Age of Casualty：傷者年紀 X
-
-Age Band of Casualty：傷者年齡層 有序
-
-Casualty Severity：受傷程度 有序
-
-Pedestrian Location：行人位置
-
-Pedestrian Movement：行人動作
-
-Car Passenger：車上乘客位置
-
-Bus or Coach Passenger：公車上乘客動作
-
-Pedestrian Road Maintenance Worker (From 2011)：是否有道路保養
-
-Casualty Type：傷亡類型
-
-Casualty IMD Decile：受害者貧困指數
-
-Casualty Home Area Type：受害區域 
-
-## EDA
-
-### 觀察各變數資料的缺失狀況百分
+## 觀察各變數資料的缺失狀況百分
 
 ```{r}
-dfna
+dfna %>% kable() %>% kable_styling() %>% scroll_box(height = "200px")
 ```
 
-其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以值接刪除兩變數，其他遺失部分則選擇刪去列。
+  - 其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以值接刪除兩變數，其他遺失部分則選擇刪去列。
 
-### 時間序列
+## 時間序列
 
-```{r}
+```{r warning=FALSE}
 
 df21 %>% filter(accident_severity == 1) -> df23
 df21 %>% filter(accident_severity != 1) -> df24
@@ -314,14 +173,17 @@ dk$Date <- as.POSIXct((dk$Date), tz = "GMT")
 df24$tt <- as.POSIXct(df24$time, format="%H:%M:%S")
 setNames(data.frame(table(df24$tt)),c("Date","Count")) ->dj
 dj$Date <- as.POSIXct((dj$Date), tz = "GMT")
-dk$id = "one"
-dj$id = "two"
+dk$id = "死亡車禍"
+dj$id = "一般車禍"
 df = rbind(dj, dk) 
 ggplot(df, aes(x = df$Date,y=Count,color=id)) + geom_line(size = 0.25)  +
-  scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ scale_y_continuous(limits = c(0,250))+ stat_smooth(color = "#FC4E05", fill = "#FC4E18",method = "loess") + xlab("時間") + ylab("死亡車禍次數")+theme(text=element_text(family="黑體-繁 中黑", size=14))
+  scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ scale_y_continuous(limits = c(0,250))+ stat_smooth(color = "#FC4E05", fill = "#FC4E18",method = "loess") + xlab("時間") + ylab("死亡車禍次數")
+
 ```
 
-### 變數觀察
+  -  在這張圖可以知道，上班時間七點以及下班時間下午四點，為車禍發生的巔峰時刻。
+
+## 變數觀察
 
 ```{r}
 df3 <- df2 %>% select(-time)
@@ -333,16 +195,18 @@ ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) +
 
 ```
 
-accident_severity跟casualty_severity呈現高度線性相關，原因為casualty_severity為衡量受害者受傷程度指標，受害者受傷越嚴重死亡重傷車禍自然也越嚴重。
+  - 事故嚴重程度(accident_severity)跟受傷程度(casualty_severity)呈現高度線性相關，原因為casualty_severity為衡量受害者受傷程度指標，受害者受傷越嚴重死亡重傷車禍自然也越嚴重。
 
 ```{r}
 df21$casualty_severity=factor(df21$casualty_severity)
 ggplot(df21, aes(accident_severity, fill=casualty_severity)) + geom_bar(position="fill")
 ```
 
-非嚴重車禍中受害者皆為輕傷，而嚴重車禍中有很大一部分的受害者為重傷少部分為死亡與輕傷。
+  - 非嚴重車禍中受害者皆為輕傷，而嚴重車禍中有很大一部分的受害者為重傷少部分為死亡與輕傷。
 
-#### 最常撞重傷的車子(記得條x軸)
+## 最常撞重傷的車子
+
+>>> (記得調x軸)
 
 ```{r}
 ggplot(df21, aes(accident_severity, fill=factor(vehicle_type))) + geom_bar(position="fill")
@@ -354,16 +218,16 @@ df21$`1st_point_of_impact`=factor(df21$`1st_point_of_impact`)
 df21$accident_severity =factor(df21$accident_severity)
 ```
 
-第五類車種一撞就掛
-星期一最容易死亡車禍
-警察在比較不會掛
-時速六十掛
-清晨比容易掛
-第四類打滑GG
-年齡出現一條正相關欸
-發生嚴重車禍時，撞擊點大部分來自於前方。
+  - 第三種與第五種車種，較易造成死亡，其中這兩種車種分別為500cc與500cc以下的摩托車，也就是摩托車造成的死亡車禍較多。
+  - 在一星期之中，星期一最容易有死亡車禍。
+  - 在事故發生現場，若警察剛好在場，死亡車禍發生的情況較低。
+  - 在道路限速為時速六十的路段，死亡車禍發生的較多。
+  - 清晨為死亡車禍發生率的高峰。
+  - 在第三種打滑程度（大卡車車頭與貨櫃呈垂直），較易有死亡車禍發生。
+  - 駕駛年齡與傷者年齡呈現正相關。
+  - 發生嚴重車禍時，撞擊點大部分來自於前方。
 
-#### 哪裡常出現嚴重車禍
+## 哪裡常出現嚴重車禍
 
 ```{r}
 map<-leaflet(df23)%>%
@@ -372,12 +236,12 @@ map<-leaflet(df23)%>%
 map %>%  addCircles(lng = df23$longitude,lat = df23$latitude,radius=df23$accident_severity,fillColor = topo.colors(10, alpha = 0.1)) 
 ```
 
-倫敦、伯明函大都市比較會掛
+  - 在大城市，如倫敦、伯明函這樣的都市，由於人口多，車流量多，事故發生的也多，而也有較多的死亡車禍發生。
 
 
-#### 車齡、天氣、路面狀況等影響
+## 車齡、天氣、路面狀況等影響
 
-```{r}
+```
 qplot(accident_severity, age_band_of_driver, data = df21, geom = c("boxplot"),
    fill = accident_severity)+ ylim(0, 10) + stat_summary(fun.y = "mean", geom = "point", shape = 25, size = 2, fill = "blue") 
 df21$weather_conditions=factor(df21$weather_conditions)
@@ -402,41 +266,104 @@ ggplot(dk, aes(x = dk$Date,y=Count)) + geom_line(color = "#00AFBB", size = 0.25)
   scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ stat_smooth(color = "#FC4E07", fill = "#FC4E07",method = "loess") + xlab("時間") + ylab("死亡車禍次數")+theme(text=element_text(family="黑體-繁 中黑", size=14))
 ```
 
-其他因素對於嚴重車禍是否發生沒那麼的大影響。
+  - 其他因素對於嚴重車禍是否發生沒那麼的大影響。
 
 
-## 隨機森林
+# Prediction
 
-```{r}
-library(doParallel)
-cl = makeCluster(2)
-registerDoParallel(cl)
+  - 預測在什麼情況下會發生死亡事故
+
+```{r, message=FALSE}
+
+#library(doParallel)
+#cl = makeCluster(4)
+#registerDoParallel(cl) # 平行運算cpu設為兩顆stopCluster(cl)
+
+df21$accident_severity <- factor(df21$accident_severity)
+df21$vehicle_location_restricted_lane = df21$`vehicle_location-restricted_lane`
+df21$pedestrian_crossing_human_control=df21$`pedestrian_crossing-human_control`
+df21$pedestrian_crossing_physical_facilities=df21$`pedestrian_crossing-physical_facilities`
+df21$engine_capacity=df21$`engine_capacity_(cc)`
+df21$was_vehicle_left_hand_drive=df21$`was_vehicle_left_hand_drive?`
+df21$local_authority_district = df21$`local_authority_(district)`
+df21$first_point_of_impact = df21$`1st_point_of_impact`
+df21$second_road_class=df21$`2nd_road_class`
+df21$first_road_class=df21$`1st_road_class`
+df21$first_point_of_impact=df21$`1st_point_of_impact`
+df21 %>% select(-`vehicle_location-restricted_lane`,-`pedestrian_crossing-human_control`,-`pedestrian_crossing-physical_facilities`,-`engine_capacity_(cc)`,-`was_vehicle_left_hand_drive?`,-`local_authority_(district)`,`1st_point_of_impact`,-`2nd_road_class`,-`1st_road_class`,-`1st_point_of_impact`)->df21
+
+set.seed(1234)
+df21sample <-sample_n(df21, 20000)
+df21sample %>% select(-time) ->df21sample
+
 set.seed(1234) # so that the indices will be the same when re-run
-trainIndices = createDataPartition(df21$accident_severity, p=.8, list=F)
+trainIndices = createDataPartition(df21sample$accident_severity, p=.8, list=F)
 
-df21_train = df21 %>% 
+df_train = df21sample %>% 
   slice(trainIndices)
 
-df21_test = df21 %>% 
+df_test = df21sample %>% 
   slice(-trainIndices)
-cv_opts = trainControl(method='cv', number=10)
+
+trainIndicesV = createDataPartition(df_train$accident_severity, p=0.7, list = FALSE)
+
+dftrain <- df_train[trainIndicesV,]
+dftest <- df_train[-trainIndicesV,]
+
+good_observed = dftest$accident_severity
+
+cv_opts10 = trainControl(method= 'cv', number = 10) #for train set
+cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
+
 ```
 
+## logistic regression without any variable/model selection
 
 ```{r}
-rf_opts = data.frame(mtry=c(1:30))
-results_rf = train(accident_severity~., 
-                   data = df21_train,
-                   method = 'rf',
-                   preProcess = c('center', 'scale'),
-                   trControl = cv_opts,
-                   tuneGrid = rf_opts,
-                   localImp = T,
-                   ntree=10)
-results_rf
-preds_rf = predict(results_rf, wine_test)
-preds_rf
-confusionMatrix(preds_rf, good_observed, positive='good')
-varImp(results_rf)
+logistic_fit <- train(accident_severity~.,
+                      data = dftrain,
+                      method = "glm",
+                      family="binomial")
+
+
+logistic_fit
 ```
+
+
+
+## logistic regression with one method of variable/model selections logistic rigid regression
+## logistic lasso regression
+## logistic GAM (generalized additive model)
+## Discriminant Analysis
+## Decision Tree
+
+```{r}
+results_dtree = train(accident_severity~., 
+                   data = df_train,
+                   method = 'rpart',
+                  trControl=cv_opts10
+                    )
+```
+
+## k-Nearest Neighbor Classification
+## Bagging
+## Random Forest
+
+```{r}
+results_rf = train(accident_severity~., 
+                   data = df_train,
+                   method = 'rf',
+                   ntree=100,
+                  trControl=cv_opts10
+                    )
+preds_rf = predict(results_rf,df_test)
+preds_rf
+confusionMatrix(preds_rf, good_observed, positive='1')
+```
+## Boosting
+## Support Vector Machines
+## Neural Networks
+
+
+
 
