@@ -293,7 +293,7 @@ df21$first_point_of_impact=df21$`1st_point_of_impact`
 df21 %>% select(-`vehicle_location-restricted_lane`,-`pedestrian_crossing-human_control`,-`pedestrian_crossing-physical_facilities`,-`engine_capacity_(cc)`,-`was_vehicle_left_hand_drive?`,-`local_authority_(district)`,`1st_point_of_impact`,-`2nd_road_class`,-`1st_road_class`,-`1st_point_of_impact`)->df21
 
 set.seed(1234)
-df21sample <-sample_n(df21, 20000)
+df21sample <-sample_n(df21, 2000)
 df21sample %>% select(-time) ->df21sample
 
 set.seed(1234) # so that the indices will be the same when re-run
@@ -310,7 +310,7 @@ trainIndicesV = createDataPartition(df_train$accident_severity, p=0.7, list = FA
 dftrain <- df_train[trainIndicesV,]
 dftest <- df_train[-trainIndicesV,]
 
-good_observed = dftest$accident_severity
+good_observed = df_test$accident_severity
 
 cv_opts10 = trainControl(method= 'cv', number = 10) #for train set
 cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
@@ -331,24 +331,57 @@ logistic_fit
 
 
 
-## logistic regression with one method of variable/model selections logistic rigid regression
+## logistic regression with one method of variable/model selections
+## logistic rigid regression
 ## logistic lasso regression
 ## logistic GAM (generalized additive model)
 ## Discriminant Analysis
+```{r}
+results_da = train(accident_severity~., 
+                   data = df_train,
+                   method = 'lda',
+                  trControl=cv_opts10
+                    )
+results_da
+preds_rf = predict(results_da,df_test)
+preds_rf
+confusionMatrix(preds_rf, good_observed, positive='1')
+```
 ## Decision Tree
-
 ```{r}
 results_dtree = train(accident_severity~., 
                    data = df_train,
                    method = 'rpart',
                   trControl=cv_opts10
                     )
+preds_dtee = predict(results_dtree,df_test)
+preds_dtree
+confusionMatrix(preds_dtree, good_observed, positive='1')
 ```
 
 ## k-Nearest Neighbor Classification
+```{r}
+results_knn = train(accident_severity~., 
+                    data=df_train, 
+                    method='knn',
+                    trControl=cv_opts10,
+                    )
+preds_knn = predict(results_knn,df_test)
+preds_knn
+confusionMatrix(preds_knn, good_observed, positive='1')
+```
 ## Bagging
+```{r}
+results_bagg = train(accident_severity~., 
+                   data = df_train,
+                   method = 'treebag',
+                  trControl=cv_opts10
+                    )
+preds_bagg = predict(results_bagg,df_test)
+preds_bagg
+confusionMatrix(preds_bagg, good_observed, positive='1')
+```
 ## Random Forest
-
 ```{r}
 results_rf = train(accident_severity~., 
                    data = df_train,
@@ -361,9 +394,28 @@ preds_rf
 confusionMatrix(preds_rf, good_observed, positive='1')
 ```
 ## Boosting
+```{r}
+results_boost = train(accident_severity~., 
+                   data = df_train,
+                   method = 'ada',
+                  trControl=cv_opts10
+                    )
+preds_boost = predict(results_boost,df_test)
+preds_boost
+confusionMatrix(preds_boost, good_observed, positive='1')
+```
 ## Support Vector Machines
 ## Neural Networks
-
-
+```{r}
+results_nnet = train(accident_severity~., 
+                   data = df_train,
+                   method = 'avNNet',
+                  trControl=cv_opts10
+                    )
+results_nnet
+preds_nnet = predict(results_nnet,df_test)
+preds_nnet
+confusionMatrix(preds_nnet, good_observed, positive='1')
+```
 
 
