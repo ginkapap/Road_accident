@@ -293,9 +293,26 @@ df21$first_point_of_impact=df21$`1st_point_of_impact`
 df21 %>% select(-`vehicle_location-restricted_lane`,-`pedestrian_crossing-human_control`,-`pedestrian_crossing-physical_facilities`,-`engine_capacity_(cc)`,-`was_vehicle_left_hand_drive?`,-`local_authority_(district)`,`1st_point_of_impact`,-`2nd_road_class`,-`1st_road_class`,-`1st_point_of_impact`)->df21
 
 set.seed(1234)
-df21sample <-sample_n(df21, 2000)
-df21sample %>% select(-time) ->df21sample
 
+df21sample <-sample_n(df21, 1000)
+
+df21sample %>% select(-time) ->df21sample
+```
+
+```{r}
+cols <- c("vehicle_type","towing_and_articulation","vehicle_manoeuvre","junction_location","skidding_and_overturning","hit_object_in_carriageway","vehicle_leaving_carriageway","hit_object_off_carriageway","journey_purpose_of_driver","sex_of_driver","propulsion_code","NUmber_of_Casualities_unique_to_accident_index","No_of_Vehicles_involved_unique_to_accident_index","police_force","accident_severity","day_of_week","road_type","speed_limit","junction_detail","junction_control","light_conditions","weather_conditions","road_surface_conditions","special_conditions_at_site","carriageway_hazards","urban_or_rural_area","did_police_officer_attend_scene_of_accident","casualty_class","sex_of_casualty","casualty_severity","pedestrian_location","pedestrian_movement","car_passenger","bus_or_coach_passenger","pedestrian_road_maintenance_worker","casualty_type","casualty_home_area_type","casualty_imd_decile","vehicle_location_restricted_lane","pedestrian_crossing_human_control","pedestrian_crossing_physical_facilities","was_vehicle_left_hand_drive","first_point_of_impact","second_road_class","first_road_class","engine_capacity")
+
+#df21sample %>% select("vehicle_type","towing_and_articulation","vehicle_manoeuvre","junction_location","skidding_and_overturning","hit_object_in_carriageway","vehicle_leaving_carriageway","hit_object_off_carriageway","journey_purpose_of_driver","sex_of_driver","propulsion_code","NUmber_of_Casualities_unique_to_accident_index","No_of_Vehicles_involved_unique_to_accident_index","police_force","accident_severity") -> df21sample
+
+#cols <- c("vehicle_type","towing_and_articulation","vehicle_manoeuvre","junction_location","skidding_and_overturning","hit_object_in_carriageway","vehicle_leaving_carriageway","hit_object_off_carriageway","journey_purpose_of_driver","sex_of_driver","propulsion_code","NUmber_of_Casualities_unique_to_accident_index","No_of_Vehicles_involved_unique_to_accident_index","police_force","accident_severity")
+
+df21sample[cols] <- lapply(df21sample[cols], factor)  
+#str(df21sample)
+
+```
+
+
+```{r}
 set.seed(1234) # so that the indices will be the same when re-run
 trainIndices = createDataPartition(df21sample$accident_severity, p=.8, list=F)
 
@@ -310,32 +327,147 @@ trainIndicesV = createDataPartition(df_train$accident_severity, p=0.7, list = FA
 dftrain <- df_train[trainIndicesV,]
 dftest <- df_train[-trainIndicesV,]
 
-good_observed = df_test$accident_severity
+
+twenty_observed = df_test$accident_severity
+
 
 cv_opts10 = trainControl(method= 'cv', number = 10) #for train set
+                         
 cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
-
 ```
 
 ## logistic regression without any variable/model selection
 
-```{r}
-logistic_fit <- train(accident_severity~.,
-                      data = dftrain,
-                      method = "glm",
-                      family="binomial")
+#### 10-fold train
+```{r warning=FALSE}
+results_regreg10 = train(accident_severity~., 
+                        data=df_train,
+                        method = "glm", 
+                        trControl = cv_opts10,
+                        family=binomial())
 
-
-logistic_fit
+results_regreg10 
 ```
 
+#### 10-fold test
+```{r warning=FALSE}
+regreg_pred<-predict(results_regreg10,df_test)
+confusionMatrix(regreg_pred,twenty_observed,positive = '1')
+```
+```
+results_regreg5 = train(accident_severity~., 
+                        data=df_test,
+                        method = "glm", 
+                        trControl = cv_opts5,
+                        family=binomial())
+results_regreg5
+
+```
+## logistic regression with one method of variable/model selections 
+```{r}
+varImp(results_regreg10)
+```
+
+#### variable/model selections
+```{r}
+df21sample %>% select(NUmber_of_Casualities_unique_to_accident_index,vehicle_manoeuvre,casualty_severity,police_force,junction_detail,skidding_and_overturning,second_road_class,light_conditions,casualty_imd_decile,pedestrian_crossing_physical_facilities,pedestrian_crossing_human_control,accident_severity) -> df21temppp
+
+trainIndices = createDataPartition(df21temppp$accident_severity, p=.8, list=F)
+
+dftemp_train = df21temppp %>% 
+  slice(trainIndices)
+
+dftemp_test = df21temppp %>% 
+  slice(-trainIndices)
 
 
-## logistic regression with one method of variable/model selections
-## logistic rigid regression
-## logistic lasso regression
-## logistic GAM (generalized additive model)
+twenty_observedtemp = dftemp_test$accident_severity
+```
+
+#### 10-fold train
+```{r warning=FALSE}
+results_regreg10 = train(accident_severity~., 
+                        data=dftemp_train,
+                        method = "glm", 
+                        trControl = cv_opts10,
+                        family=binomial())
+
+results_regreg10 
+```
+
+#### 10-fold test
+```{r warning=FALSE}
+regreg_pred<-predict(results_regreg10,dftemp_test)
+confusionMatrix(regreg_pred,dftemp_test$accident_severity,positive = '1')
+```
+```
+results_regreg5 = train(accident_severity~., 
+                        data=dftemp_test,
+                        method = "glm", 
+                        trControl = cv_opts5,
+                        family=binomial())
+results_regreg5
+```
+## logistic rigid & lasso regression
+
+#### 10-fold train
+```{r warning=FALSE}
+regreg_opts = expand.grid(.alpha = seq(.1, 1, length = 5),
+                          .lambda = seq(.1, .5, length = 5))
+
+results_regreg10 = train(accident_severity~., 
+                        data=df_train,
+                        method = "glmnet", 
+                        trControl = cv_opts10, 
+                        tuneGrid = regreg_opts)
+
+results_regreg10 
+```
+
+#### 10-fold test
+```{r warning=FALSE}
+preds_regreg = predict(results_regreg10, df_test)
+confusionMatrix(preds_regreg, twenty_observed,positive = '1')
+
+```
+```
+results_regreg5 = train(accident_severity~., 
+                        data=df_test,
+                        method = "glmnet", 
+                        trControl = cv_opts5, 
+                        tuneGrid = regreg_opts)
+
+results_regreg5 
+```
+
+## logistic GAM
+
+#### 10-fold train
+```{r warning=FALSE,message=FALSE}
+results_regreg10 = train(accident_severity~., 
+                        data=df_train,
+                        method = "gam", 
+                        trControl = cv_opts10)
+
+results_regreg10 
+```
+
+#### 10-fold test
+```{r warning=FALSE}
+regreg_pred<-predict(results_regreg10,df_test)
+confusionMatrix(regreg_pred,twenty_observed,positive = '1')
+```
+```
+results_regreg5 = train(accident_severity~., 
+                        data=df_test,
+                        method = "gam", 
+                        trControl = cv_opts5)
+
+results_regreg5 
+```
 ## Discriminant Analysis
+
+#### 10-fold train
 ```{r}
 results_da = train(accident_severity~., 
                    data = df_train,
@@ -343,45 +475,86 @@ results_da = train(accident_severity~.,
                   trControl=cv_opts10
                     )
 results_da
-preds_rf = predict(results_da,df_test)
-preds_rf
-confusionMatrix(preds_rf, good_observed, positive='1')
 ```
+
+#### 10-fold test
+```{r}
+preds_rf = predict(results_da,df_test)
+confusionMatrix(preds_rf, twenty_observed, positive='1')
+```
+
 ## Decision Tree
+
+#### 10-fold train
 ```{r}
 results_dtree = train(accident_severity~., 
                    data = df_train,
                    method = 'rpart',
                   trControl=cv_opts10
                     )
-preds_dtee = predict(results_dtree,df_test)
-preds_dtree
-confusionMatrix(preds_dtree, good_observed, positive='1')
+results_dtree
+```
+
+#### 10-fold test
+```{r}
+preds_dtree = predict(results_dtree,df_test)
+confusionMatrix(preds_dtree, twenty_observed, positive='1')
 ```
 
 ## k-Nearest Neighbor Classification
+
+#### 10-fold train
 ```{r}
-results_knn = train(accident_severity~., 
+knn_opts = data.frame(k=c(seq(3, 11, 2)))
+
+results_knn10 = train(accident_severity~., 
                     data=df_train, 
                     method='knn',
                     trControl=cv_opts10,
+                    tuneGrid = knn_opts
                     )
-preds_knn = predict(results_knn,df_test)
-preds_knn
-confusionMatrix(preds_knn, good_observed, positive='1')
+
+results_knn10
+```
+
+#### 10-fold test
+```{r}
+preds_knn = predict(results_knn10, df_test)
+confusionMatrix(preds_knn, twenty_observed,positive = '1')
+```
+```
+knn_opts = data.frame(k=c(seq(3, 11, 2)))
+
+results_knn5 = train(accident_severity~., 
+                    data=df_test, 
+                    method='knn',
+                    trControl=cv_opts5,
+                    tuneGrid = knn_opts)
+
+results_knn5
 ```
 ## Bagging
+
+#### 10-fold train
 ```{r}
 results_bagg = train(accident_severity~., 
                    data = df_train,
                    method = 'treebag',
                   trControl=cv_opts10
                     )
-preds_bagg = predict(results_bagg,df_test)
-preds_bagg
-confusionMatrix(preds_bagg, good_observed, positive='1')
+results_bagg
 ```
+
+#### 10-fold test
+
+```{r}
+preds_bagg = predict(results_bagg,df_test)
+confusionMatrix(preds_bagg, twenty_observed, positive='1')
+```
+
 ## Random Forest
+
+#### 10-fold train
 ```{r}
 results_rf = train(accident_severity~., 
                    data = df_train,
@@ -389,33 +562,78 @@ results_rf = train(accident_severity~.,
                    ntree=100,
                   trControl=cv_opts10
                     )
-preds_rf = predict(results_rf,df_test)
-preds_rf
-confusionMatrix(preds_rf, good_observed, positive='1')
+results_rf
 ```
+
+#### 10-fold train
+```{r}
+preds_rf = predict(results_rf,df_test)
+confusionMatrix(preds_rf, twenty_observed, positive='1')
+```
+
 ## Boosting
+
+#### 10-fold train
 ```{r}
 results_boost = train(accident_severity~., 
                    data = df_train,
                    method = 'ada',
                   trControl=cv_opts10
                     )
-preds_boost = predict(results_boost,df_test)
-preds_boost
-confusionMatrix(preds_boost, good_observed, positive='1')
+results_boost
 ```
-## Support Vector Machines
-## Neural Networks
+
+#### 10-fold test
 ```{r}
+preds_boost = predict(results_boost,df_test)
+confusionMatrix(preds_boost, twenty_observed, positive='1')
+```
+
+## Support Vector Machines
+
+#### 10-fold train
+```{r warning=FALSE}
+results_svm10 = train(accident_severity~., 
+                    data=df_train, 
+                    method='svmLinear2', 
+                    trControl=cv_opts10, 
+                    tuneLength=5,
+                    probability=TRUE)  # to get probs along with classifications
+
+results_svm10
+```
+
+#### 10-fold test
+```{r warning=FALSE}
+preds_svm = predict(results_svm10, df_test)
+confusionMatrix(preds_svm, twenty_observed,positive = '1')
+```
+```
+results_svm5 = train(accident_severity~., 
+                    data=df_test, 
+                    method='svmLinear2', 
+                    trControl=cv_opts5, 
+                    tuneLength=5,
+                    probability=TRUE)  # to get probs along with classifications
+
+results_svm5
+```
+## Neural Networks
+
+#### 10-fold train
+```{r warning=FALSE,message=FALSE}
 results_nnet = train(accident_severity~., 
                    data = df_train,
                    method = 'avNNet',
                   trControl=cv_opts10
                     )
 results_nnet
+```
+
+#### 10-fold test
+```{r}
 preds_nnet = predict(results_nnet,df_test)
-preds_nnet
-confusionMatrix(preds_nnet, good_observed, positive='1')
+confusionMatrix(preds_nnet, twenty_observed, positive='1')
 ```
 
 
