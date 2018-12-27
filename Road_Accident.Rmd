@@ -335,6 +335,9 @@ twenty_observed = df_test$accident_severity
 cv_opts10 = trainControl(method= 'cv', number = 10) #for train set
                          
 cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
+
+df_train1<-SMOTE(accident_severity~.,df_train,perc.over=100,perc.under=200)
+prop.table(table(df_train1$accident_severity))
 ```
 
 ## logistic regression without any variable/model selection
@@ -521,7 +524,7 @@ roc(df_test$accident_severity,preds_dtree$`1`)
 knn_opts = data.frame(k=c(seq(3, 11, 2)))
 
 results_knn10 = train(accident_severity~., 
-                    data=df_train, 
+                    data=df_train1, 
                     method='knn',
                     trControl=cv_opts10,
                     tuneGrid = knn_opts
