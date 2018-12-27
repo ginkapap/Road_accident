@@ -16,7 +16,7 @@ output:
 
 ###目的與説明
 
-本次欲探討題目為「在何種情況下，最有可能發生嚴重交通事故」，原始資料中事故嚴重程度分為三級，本處將歸類第一、二級為嚴重第三級為不嚴重；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡變數且剔除年齡層變數。
+本次欲探討題目為「在何種情況下，最有可能發死亡交通事故」，原始資料中事故嚴重程度分為三級，本處將歸類第一、二級為嚴重第三級為不嚴重；並且踢除一些沒有用的變數如事故發生的ID，車牌號碼等代碼性質之變數，另外因原始資料中存有年齡層與年齡兩變數，所以將保留年齡變數且剔除年齡層變數。
 
 ## 資料變數說明
 
@@ -158,9 +158,9 @@ source_python("Road_Accident.py")
 dfna %>% kable() %>% kable_styling() %>% scroll_box(height = "200px")
 ```
 
-  - 其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以值接刪除兩變數，其他遺失部分則選擇刪去列。
+  - 其中vehicle_imd_decile,driver_imd_decile兩行遺失值為百分百所以直接刪除兩變數，其他遺失部分則選擇刪去列。
 
-## 時間序列
+## 時間
 
 ```{r warning=FALSE}
 
@@ -182,7 +182,7 @@ ggplot(df, aes(x = df$Date,y=Count,color=id)) + geom_line(size = 0.25)  +
 
 ```
 
-  -  在這張圖可以知道，上班時間七點以及下班時間下午四點，為車禍發生的巔峰時刻。
+  -  圖中得知，上午七點至下午四點，為車禍主要發生時間；故死亡事故發生次數也較高。
 
 ## 變數觀察
 
@@ -196,39 +196,42 @@ ggplot(data = melted_cormat, aes(x=Var1, y=Var2, fill=value)) +
 
 ```
 
-  - 事故嚴重程度(accident_severity)跟受傷程度(casualty_severity)呈現高度線性相關，原因為casualty_severity為衡量受害者受傷程度指標，受害者受傷越嚴重死亡重傷車禍自然也越嚴重。
+  - 事故嚴重程度(accident_severity)與受害者受傷程度(casualty_severity)呈現高度相關。
 
 ```{r}
 df21$casualty_severity=factor(df21$casualty_severity)
 ggplot(df21, aes(accident_severity, fill=casualty_severity)) + geom_bar(position="fill")
 ```
 
-  - 非嚴重車禍中受害者皆為輕傷，而嚴重車禍中有很大一部分的受害者為重傷少部分為死亡與輕傷。
-
-## 最常撞重傷的車子
-
->>> (記得調x軸)
+  - 死亡事故中有很大一部分受害者為重傷少部分為死亡與輕傷。
 
 ```{r}
 ggplot(df21, aes(accident_severity, fill=factor(vehicle_type))) + geom_bar(position="fill")
 ggplot(df21, aes(accident_severity, fill=factor(did_police_officer_attend_scene_of_accident))) + geom_bar(position="fill")
 ggplot(df21, aes(accident_severity, fill=factor(speed_limit))) + geom_bar(position="fill")
 ggplot(df21, aes(skidding_and_overturning, fill=factor(accident_severity))) + geom_bar(position="fill")
-ggplot(df21, aes(x=df21$age_of_driver,y=df21$age_of_casualty,colour=factor(df21$accident_severity))) + geom_point(alpha=0.06)
-df21$`1st_point_of_impact`=factor(df21$`1st_point_of_impact`)
-df21$accident_severity =factor(df21$accident_severity)
+#df21$`1st_point_of_impact`=factor(df21$`1st_point_of_impact`)
+#df21$accident_severity =factor(df21$accident_severity)
 ```
 
-  - 第三種與第五種車種，較易造成死亡，其中這兩種車種分別為500cc與500cc以下的摩托車，也就是摩托車造成的死亡車禍較多。
-  - 在一星期之中，星期一最容易有死亡車禍。
-  - 在事故發生現場，若警察剛好在場，死亡車禍發生的情況較低。
-  - 在道路限速為時速六十的路段，死亡車禍發生的較多。
-  - 清晨為死亡車禍發生率的高峰。
-  - 在第三種打滑程度（大卡車車頭與貨櫃呈垂直），較易有死亡車禍發生。
-  - 駕駛年齡與傷者年齡呈現正相關。
-  - 發生嚴重車禍時，撞擊點大部分來自於前方。
+  - 第三種與第五種車種，較易發生死亡事故，其中這兩種車種分別為500cc與500cc以下的摩托車。
+  
+  - 死亡事故中，警察參與事故現場的比例高於非死亡事故。
+  
+  - 死亡事故中，道路限速在60時比例最高。
+  
+  - 一星期中，星期三發生非死亡事故比例最高，星期四發生死亡事故比例最高。
+  
+## 年齡
 
-## 哪裡常出現嚴重車禍
+```{r}
+ggplot(df21, aes(x=df21$age_of_driver,y=df21$age_of_casualty,colour=factor(df21$accident_severity))) + geom_point(alpha=0.06)
+```
+
+  - 傷者年齡與駕駛年齡呈現正相關。
+
+
+## 地點
 
 ```{r}
 map<-leaflet(df23)%>%
@@ -237,7 +240,7 @@ map<-leaflet(df23)%>%
 map %>%  addCircles(lng = df23$longitude,lat = df23$latitude,radius=df23$accident_severity,fillColor = topo.colors(10, alpha = 0.1)) 
 ```
 
-  - 在大城市，如倫敦、伯明函這樣的都市，由於人口多，車流量多，事故發生的也多，而也有較多的死亡車禍發生。
+  - 在大城市中，如倫敦、伯明罕、曼徹斯特，有較多的死亡事故發生。
 
 
 ## 車齡、天氣、路面狀況等影響
@@ -266,9 +269,6 @@ ggplot(dj, aes(x = dj$`lubridate::hour(Date)`,y=count)) + geom_line()  +
 ggplot(dk, aes(x = dk$Date,y=Count)) + geom_line(color = "#00AFBB", size = 0.25)  +
   scale_x_datetime(date_labels = "%H:%M", date_breaks = "3 hour")+ stat_smooth(color = "#FC4E07", fill = "#FC4E07",method = "loess") + xlab("時間") + ylab("死亡車禍次數")+theme(text=element_text(family="黑體-繁 中黑", size=14))
 ```
-
-  - 其他因素對於嚴重車禍是否發生沒那麼的大影響。
-
 
 # Prediction
 
@@ -394,7 +394,7 @@ twenty_observedtemp = dftemp_test$accident_severity
 #### 10-fold train
 ```{r warning=FALSE}
 results_regreg10 = train(accident_severity~., 
-                        data=df_train1,
+                        data=dftemp_train,
                         method = "glm", 
                         trControl = cv_opts10,
                         family=binomial())
@@ -408,7 +408,7 @@ regreg_pred<-predict(results_regreg10,dftemp_test)
 confusionMatrix(regreg_pred,dftemp_test$accident_severity,positive = '1')
 
 regreg_pred<-predict(results_regreg10,dftemp_test,type='prob')
-roc(df_test$accident_severity,regreg_pred$`1`)
+roc(dftemp_test$accident_severity,regreg_pred$`1`)
 ```
 ```
 results_regreg5 = train(accident_severity~., 
@@ -484,10 +484,10 @@ results_regreg5
 ## Discriminant Analysis
 
 #### 10-fold train
-```{r}
+```{r }
 results_da = train(accident_severity~., 
                    data = df_train1,
-                   method = 'lda',
+                   method = 'binda',
                   trControl=cv_opts10
                     )
 results_da
