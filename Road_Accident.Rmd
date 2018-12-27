@@ -345,7 +345,7 @@ prop.table(table(df_train1$accident_severity))
 #### 10-fold train
 ```{r warning=FALSE}
 results_regreg10 = train(accident_severity~., 
-                        data=df_train,
+                        data=df_train1,
                         method = "glm", 
                         trControl = cv_opts10,
                         family=binomial())
@@ -355,9 +355,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,df_test,type="prob")
+regreg_pred<-predict(results_regreg10,df_test)
 confusionMatrix(regreg_pred,twenty_observed,positive = '1')
-auc<-roc(df_test$accident_severity,regreg_pred)
+
+regreg_pred<-predict(results_regreg10,df_test,type="prob")
 roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
@@ -393,7 +394,7 @@ twenty_observedtemp = dftemp_test$accident_severity
 #### 10-fold train
 ```{r warning=FALSE}
 results_regreg10 = train(accident_severity~., 
-                        data=dftemp_train,
+                        data=df_train1,
                         method = "glm", 
                         trControl = cv_opts10,
                         family=binomial())
@@ -403,9 +404,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,dftemp_test,type='prob')
+regreg_pred<-predict(results_regreg10,dftemp_test)
 confusionMatrix(regreg_pred,dftemp_test$accident_severity,positive = '1')
-auc<-roc(df_test$accident_severity,regreg_pred)
+
+regreg_pred<-predict(results_regreg10,dftemp_test,type='prob')
 roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
@@ -424,7 +426,7 @@ regreg_opts = expand.grid(.alpha = seq(.1, 1, length = 5),
                           .lambda = seq(.1, .5, length = 5))
 
 results_regreg10 = train(accident_severity~., 
-                        data=df_train,
+                        data=df_train1,
                         method = "glmnet", 
                         trControl = cv_opts10, 
                         tuneGrid = regreg_opts)
@@ -434,10 +436,11 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-preds_regreg = predict(results_regreg10, df_test,type='prob')
+preds_regreg = predict(results_regreg10, df_test)
 confusionMatrix(preds_regreg, twenty_observed,positive = '1')
-auc<-roc(df_test$accident_severity,preds_regreg)
-roc(df_test$accident_severity,regreg_pred$`1`)
+
+preds_regreg = predict(results_regreg10, df_test,type='prob')
+roc(df_test$accident_severity,preds_regreg$`1`)
 
 ```
 ```
@@ -455,7 +458,7 @@ results_regreg5
 #### 10-fold train
 ```{r warning=FALSE,message=FALSE}
 results_regreg10 = train(accident_severity~., 
-                        data=df_train,
+                        data=df_train1,
                         method = "gam", 
                         trControl = cv_opts10)
 
@@ -464,9 +467,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,df_test,type='prob')
+regreg_pred<-predict(results_regreg10,df_test)
 confusionMatrix(regreg_pred,twenty_observed,positive = '1')
-auc<-roc(df_test$accident_severity,regreg_pred)
+
+regreg_pred<-predict(results_regreg10,df_test,type='prob')
 roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
@@ -482,7 +486,7 @@ results_regreg5
 #### 10-fold train
 ```{r}
 results_da = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'lda',
                   trControl=cv_opts10
                     )
@@ -491,10 +495,11 @@ results_da
 
 #### 10-fold test
 ```{r}
-preds_rf = predict(results_da,df_test,type='prob')
-confusionMatrix(preds_rf, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_rf)
-roc(df_test$accident_severity,preds_rf$`1`)
+preds_da = predict(results_da,df_test)
+confusionMatrix(preds_da, twenty_observed, positive='1')
+
+preds_da = predict(results_da,df_test,type='prob')
+roc(df_test$accident_severity,preds_da$`1`)
 ```
 
 ## Decision Tree
@@ -502,7 +507,7 @@ roc(df_test$accident_severity,preds_rf$`1`)
 #### 10-fold train
 ```{r}
 results_dtree = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'rpart',
                   trControl=cv_opts10
                     )
@@ -511,9 +516,10 @@ results_dtree
 
 #### 10-fold test
 ```{r}
-preds_dtree = predict(results_dtree,df_test,type='prob')
+preds_dtree = predict(results_dtree,df_test)
 confusionMatrix(preds_dtree, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_dtree)
+
+preds_dtree = predict(results_dtree,df_test,type='prob')
 roc(df_test$accident_severity,preds_dtree$`1`)
 ```
 
@@ -555,7 +561,7 @@ results_knn5
 #### 10-fold train
 ```{r}
 results_bagg = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'treebag',
                   trControl=cv_opts10
                     )
@@ -565,9 +571,10 @@ results_bagg
 #### 10-fold test
 
 ```{r}
-preds_bagg = predict(results_bagg,df_test,type='prob')
+preds_bagg = predict(results_bagg,df_test)
 confusionMatrix(preds_bagg, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_bagg)
+
+preds_bagg = predict(results_bagg,df_test,type='prob')
 roc(df_test$accident_severity,preds_bagg$`1`)
 ```
 
@@ -576,7 +583,7 @@ roc(df_test$accident_severity,preds_bagg$`1`)
 #### 10-fold train
 ```{r}
 results_rf = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'rf',
                    ntree=100,
                   trControl=cv_opts10
@@ -586,9 +593,10 @@ results_rf
 
 #### 10-fold test
 ```{r}
-preds_rf = predict(results_rf,df_test,type='prob')
+preds_rf = predict(results_rf,df_test)
 confusionMatrix(preds_rf, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_rf)
+
+preds_rf = predict(results_rf,df_test,type='prob')
 roc(df_test$accident_severity,preds_rf$`1`)
 ```
 
@@ -597,7 +605,7 @@ roc(df_test$accident_severity,preds_rf$`1`)
 #### 10-fold train
 ```{r}
 results_boost = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'ada',
                   trControl=cv_opts10
                     )
@@ -606,9 +614,10 @@ results_boost
 
 #### 10-fold test
 ```{r}
-preds_boost = predict(results_boost,df_test,type='prob')
+preds_boost = predict(results_boost,df_test)
 confusionMatrix(preds_boost, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_boost)
+
+preds_boost = predict(results_boost,df_test,type='prob')
 roc(df_test$accident_severity,preds_boost$`1`)
 ```
 
@@ -617,7 +626,7 @@ roc(df_test$accident_severity,preds_boost$`1`)
 #### 10-fold train
 ```{r warning=FALSE}
 results_svm10 = train(accident_severity~., 
-                    data=df_train, 
+                    data=df_train1, 
                     method='svmLinear2', 
                     trControl=cv_opts10, 
                     tuneLength=5,
@@ -628,9 +637,10 @@ results_svm10
 
 #### 10-fold test
 ```{r warning=FALSE}
-preds_svm = predict(results_svm10, df_test,type='prob')
+preds_svm = predict(results_svm10, df_test)
 confusionMatrix(preds_svm, twenty_observed,positive = '1')
-auc<-roc(df_test$accident_severity,preds_svm)
+
+preds_svm = predict(results_svm10, df_test,type='prob')
 roc(df_test$accident_severity,preds_svm$`1`)
 ```
 ```
@@ -648,7 +658,7 @@ results_svm5
 #### 10-fold train
 ```{r warning=FALSE,message=FALSE}
 results_nnet = train(accident_severity~., 
-                   data = df_train,
+                   data = df_train1,
                    method = 'avNNet',
                   trControl=cv_opts10
                     )
@@ -657,9 +667,10 @@ results_nnet
 
 #### 10-fold test
 ```{r}
-preds_nnet = predict(results_nnet,df_test,type='prob')
+preds_nnet = predict(results_nnet,df_test)
 confusionMatrix(preds_nnet, twenty_observed, positive='1')
-auc<-roc(df_test$accident_severity,preds_nnet)
+
+preds_nnet = predict(results_nnet,df_test,type='prob')
 roc(df_test$accident_severity,preds_$`1`)
 ```
 
