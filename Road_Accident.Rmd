@@ -4,9 +4,7 @@ title: "Road Accidents Incidence "
 author: "李冠緻、王聖曜"
 
 date: 
-output: 
-  html_document:
-    number_sections: true
+output: html_document
 ---
 
 資料名稱：Road Accidents Incidence 
@@ -295,7 +293,7 @@ df21 %>% select(-`vehicle_location-restricted_lane`,-`pedestrian_crossing-human_
 
 set.seed(1234)
 
-df21sample <-sample_n(df21, 2000)
+df21sample <-sample_n(df21, 500)
 
 df21sample %>% select(-time) ->df21sample
 ```
@@ -311,7 +309,6 @@ df21sample[cols] <- lapply(df21sample[cols], factor)
 #str(df21sample)
 
 ```
-
 
 ```{r}
 set.seed(1234) # so that the indices will be the same when re-run
@@ -337,7 +334,7 @@ cv_opts10 = trainControl(method= 'cv', number = 10) #for train set
 cv_opts5 = trainControl(method = 'cv', number = 5) #for test set
 
 df_train1<-SMOTE(accident_severity~.,df_train,perc.over=100,perc.under=200)
-prop.table(table(df_train1$accident_severity))
+#prop.table(table(df_train1$accident_severity))
 ```
 
 ## logistic regression without any variable/model selection
@@ -372,17 +369,23 @@ results_regreg5
 ```
 ## logistic regression with one method of variable/model selections 
 ```{r}
-varImp(results_regreg10)
+varImp(results_regreg10) 
 ```
 
 #### variable/model selections
 ```{r}
 df21sample %>% select(NUmber_of_Casualities_unique_to_accident_index,vehicle_manoeuvre,casualty_severity,police_force,junction_detail,skidding_and_overturning,second_road_class,light_conditions,casualty_imd_decile,pedestrian_crossing_physical_facilities,pedestrian_crossing_human_control,accident_severity) -> df21temppp
 
+df_train1<-SMOTE(accident_severity~.,df_train,perc.over=100,perc.under=200)
+
 trainIndices = createDataPartition(df21temppp$accident_severity, p=.8, list=F)
 
 dftemp_train = df21temppp %>% 
   slice(trainIndices)
+
+
+dftemp_train<-SMOTE(accident_severity~.,dftemp_train,perc.over=100,perc.under=200)
+
 
 dftemp_test = df21temppp %>% 
   slice(-trainIndices)
@@ -418,11 +421,11 @@ results_regreg5 = train(accident_severity~.,
                         family=binomial())
 results_regreg5
 ```
-## logistic rigid & lasso regression
+## logistic rigid 
 
 #### 10-fold train
 ```{r warning=FALSE}
-regreg_opts = expand.grid(.alpha = seq(.1, 1, length = 5),
+regreg_opts = expand.grid(.alpha = 0,
                           .lambda = seq(.1, .5, length = 5))
 
 results_regreg10 = train(accident_severity~., 
@@ -452,6 +455,31 @@ results_regreg5 = train(accident_severity~.,
 
 results_regreg5 
 ```
+## lasso regression 
+
+#### 10-fold train
+```{r warning=FALSE}
+regreg_opts = expand.grid(.alpha = 1,
+                          .lambda = seq(.1, .5, length = 5))
+
+results_regreg10 = train(accident_severity~., 
+                        data=df_train1,
+                        method = "glmnet", 
+                        trControl = cv_opts10, 
+                        tuneGrid = regreg_opts)
+
+results_regreg10 
+```
+
+#### 10-fold test
+```{r warning=FALSE}
+preds_regreg = predict(results_regreg10, df_test)
+confusionMatrix(preds_regreg, twenty_observed,positive = '1')
+
+preds_regreg = predict(results_regreg10, df_test,type='prob')
+roc(df_test$accident_severity,preds_regreg$`1`)
+
+```
 
 ## logistic GAM
 
@@ -480,26 +508,6 @@ results_regreg5 = train(accident_severity~.,
                         trControl = cv_opts5)
 
 results_regreg5 
-```
-## Discriminant Analysis
-
-#### 10-fold train
-```{r }
-results_da = train(accident_severity~., 
-                   data = df_train1,
-                   method = 'binda',
-                  trControl=cv_opts10
-                    )
-results_da
-```
-
-#### 10-fold test
-```{r}
-preds_da = predict(results_da,df_test)
-confusionMatrix(preds_da, twenty_observed, positive='1')
-
-preds_da = predict(results_da,df_test,type='prob')
-roc(df_test$accident_severity,preds_da$`1`)
 ```
 
 ## Decision Tree
@@ -586,8 +594,7 @@ results_rf = train(accident_severity~.,
                    data = df_train1,
                    method = 'rf',
                    ntree=100,
-                  trControl=cv_opts10
-                    )
+                   trControl=cv_opts10)
 results_rf
 ```
 
@@ -660,7 +667,8 @@ results_svm5
 results_nnet = train(accident_severity~., 
                    data = df_train1,
                    method = 'avNNet',
-                  trControl=cv_opts10
+                  trControl=cv_opts10,
+                  trace=FALSE
                     )
 results_nnet
 ```
@@ -671,7 +679,24 @@ preds_nnet = predict(results_nnet,df_test)
 confusionMatrix(preds_nnet, twenty_observed, positive='1')
 
 preds_nnet = predict(results_nnet,df_test,type='prob')
-roc(df_test$accident_severity,preds_$`1`)
+roc(df_test$accident_severity,preds_nnet$`1`)
 ```
 
+#### ans
+```{r}
+table <- matrix(c(0.749,0.266,0.931,0.592,0.771,0.786,
+                    0.867,0.476,0.971,0.816,0.874,0.891,
+                    0.892,0.544,0.964,0.755,0.911,0.905,
+                    0.962,1,0.959,0.694,1,0.847,
+                    0.822,0.383,0.957,0.735,0.834,0.785,
+                    0.874,0.493,0.965,0.775,0.888,0.886,
+                    0.576,0.155,0.902,0.551,0.580,0.568,
+                    0.874,0.493,0.960,0.734,0.894,0.901,
+                    0.867,0.474,0.962,0.755,0.882,0.909
+                    ),ncol=6,byrow=TRUE)
+colnames(table) <- c("Accuracy","分類正確率","錯誤分類率","sensitivity","specificity","ROC")
+rownames(table) <- c("logistic","logistic ms","logistic lasso","logistic rigid","logistic GAM","DT","K-NN","Bagging","RF")
+table <- as.table(table)
+table
+```
 
