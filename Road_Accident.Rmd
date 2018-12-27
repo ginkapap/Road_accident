@@ -142,6 +142,7 @@ library(chron)
 library(showtext)
 showtext_auto()
 library(kableExtra)
+library(pROC)
 ```
 
 ```{r, echo=TRUE,include=FALSE}
@@ -294,7 +295,7 @@ df21 %>% select(-`vehicle_location-restricted_lane`,-`pedestrian_crossing-human_
 
 set.seed(1234)
 
-df21sample <-sample_n(df21, 1000)
+df21sample <-sample_n(df21, 2000)
 
 df21sample %>% select(-time) ->df21sample
 ```
@@ -351,8 +352,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,df_test)
+regreg_pred<-predict(results_regreg10,df_test,type="prob")
 confusionMatrix(regreg_pred,twenty_observed,positive = '1')
+auc<-roc(df_test$accident_severity,regreg_pred)
+roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
 results_regreg5 = train(accident_severity~., 
@@ -397,8 +400,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,dftemp_test)
+regreg_pred<-predict(results_regreg10,dftemp_test,type='prob')
 confusionMatrix(regreg_pred,dftemp_test$accident_severity,positive = '1')
+auc<-roc(df_test$accident_severity,regreg_pred)
+roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
 results_regreg5 = train(accident_severity~., 
@@ -426,8 +431,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-preds_regreg = predict(results_regreg10, df_test)
+preds_regreg = predict(results_regreg10, df_test,type='prob')
 confusionMatrix(preds_regreg, twenty_observed,positive = '1')
+auc<-roc(df_test$accident_severity,preds_regreg)
+roc(df_test$accident_severity,regreg_pred$`1`)
 
 ```
 ```
@@ -454,8 +461,10 @@ results_regreg10
 
 #### 10-fold test
 ```{r warning=FALSE}
-regreg_pred<-predict(results_regreg10,df_test)
+regreg_pred<-predict(results_regreg10,df_test,type='prob')
 confusionMatrix(regreg_pred,twenty_observed,positive = '1')
+auc<-roc(df_test$accident_severity,regreg_pred)
+roc(df_test$accident_severity,regreg_pred$`1`)
 ```
 ```
 results_regreg5 = train(accident_severity~., 
@@ -479,8 +488,10 @@ results_da
 
 #### 10-fold test
 ```{r}
-preds_rf = predict(results_da,df_test)
+preds_rf = predict(results_da,df_test,type='prob')
 confusionMatrix(preds_rf, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_rf)
+roc(df_test$accident_severity,preds_rf$`1`)
 ```
 
 ## Decision Tree
@@ -497,8 +508,10 @@ results_dtree
 
 #### 10-fold test
 ```{r}
-preds_dtree = predict(results_dtree,df_test)
+preds_dtree = predict(results_dtree,df_test,type='prob')
 confusionMatrix(preds_dtree, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_dtree)
+roc(df_test$accident_severity,preds_dtree$`1`)
 ```
 
 ## k-Nearest Neighbor Classification
@@ -513,7 +526,6 @@ results_knn10 = train(accident_severity~.,
                     trControl=cv_opts10,
                     tuneGrid = knn_opts
                     )
-
 results_knn10
 ```
 
@@ -521,6 +533,8 @@ results_knn10
 ```{r}
 preds_knn = predict(results_knn10, df_test)
 confusionMatrix(preds_knn, twenty_observed,positive = '1')
+preds_knn = predict(results_knn10, df_test,type="prob")
+roc(df_test$accident_severity,preds_knn$`1`)
 ```
 ```
 knn_opts = data.frame(k=c(seq(3, 11, 2)))
@@ -548,8 +562,10 @@ results_bagg
 #### 10-fold test
 
 ```{r}
-preds_bagg = predict(results_bagg,df_test)
+preds_bagg = predict(results_bagg,df_test,type='prob')
 confusionMatrix(preds_bagg, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_bagg)
+roc(df_test$accident_severity,preds_bagg$`1`)
 ```
 
 ## Random Forest
@@ -565,10 +581,12 @@ results_rf = train(accident_severity~.,
 results_rf
 ```
 
-#### 10-fold train
+#### 10-fold test
 ```{r}
-preds_rf = predict(results_rf,df_test)
+preds_rf = predict(results_rf,df_test,type='prob')
 confusionMatrix(preds_rf, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_rf)
+roc(df_test$accident_severity,preds_rf$`1`)
 ```
 
 ## Boosting
@@ -585,8 +603,10 @@ results_boost
 
 #### 10-fold test
 ```{r}
-preds_boost = predict(results_boost,df_test)
+preds_boost = predict(results_boost,df_test,type='prob')
 confusionMatrix(preds_boost, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_boost)
+roc(df_test$accident_severity,preds_boost$`1`)
 ```
 
 ## Support Vector Machines
@@ -605,8 +625,10 @@ results_svm10
 
 #### 10-fold test
 ```{r warning=FALSE}
-preds_svm = predict(results_svm10, df_test)
+preds_svm = predict(results_svm10, df_test,type='prob')
 confusionMatrix(preds_svm, twenty_observed,positive = '1')
+auc<-roc(df_test$accident_severity,preds_svm)
+roc(df_test$accident_severity,preds_svm$`1`)
 ```
 ```
 results_svm5 = train(accident_severity~., 
@@ -632,8 +654,10 @@ results_nnet
 
 #### 10-fold test
 ```{r}
-preds_nnet = predict(results_nnet,df_test)
+preds_nnet = predict(results_nnet,df_test,type='prob')
 confusionMatrix(preds_nnet, twenty_observed, positive='1')
+auc<-roc(df_test$accident_severity,preds_nnet)
+roc(df_test$accident_severity,preds_$`1`)
 ```
 
 
